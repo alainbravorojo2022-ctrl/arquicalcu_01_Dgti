@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConstructoPro - Costeo y Estimación Dinámica de Obra</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 text-slate-800 h-full flex flex-col">
+
+    <!-- Header Principal -->
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 p-2.5 rounded-xl shadow-lg text-white">
+                    <i class="fa-solid fa-hard-hat text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">ConstructoPro <span class="text-brand-500 text-sm font-normal">v4.0 Parámetros Personalizables</span></h1>
+                    <p class="text-xs text-slate-400">Plataforma integral de costeo y cómputo volumétrico paramétrico</p>
+                </div>
+            </div>
+            <!-- Acciones Generales -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="guardarDatos()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-lg text-sm font-medium border border-slate-700 transition flex items-center gap-2">
+                    <i class="fa-regular fa-floppy-disk"></i> Guardar
+                </button>
+                <button onclick="cargarDatos()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-lg text-sm font-medium border border-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-down"></i> Cargar
+                </button>
+                <button onclick="window.print()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> Imprimir / PDF
+                </button>
+                <button onclick="resetearPresupuesto()" class="bg-red-900/40 hover:bg-red-900/60 text-red-200 px-3.5 py-2 rounded-lg text-sm font-medium border border-red-800/50 transition" title="Reiniciar">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Estadísticas Rápidas -->
+    <section class="max-w-7xl w-full mx-auto px-4 pt-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Costo Directo Total</p>
+                    <h3 id="lblCostoDirecto" class="text-2xl font-bold text-slate-900 mt-1">$0.00</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Materiales + Mano Obra</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-brand-600">
+                    <i class="fa-solid fa-calculator text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Materiales</p>
+                    <h3 id="lblTotalMateriales" class="text-2xl font-bold text-slate-900 mt-1">$0.00</h3>
+                    <p class="text-xs text-brand-600 mt-0.5" id="pctMateriales">0% del costo</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                    <i class="fa-solid fa-cubes text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Mano de Obra</p>
+                    <h3 id="lblTotalManoObra" class="text-2xl font-bold text-slate-900 mt-1">$0.00</h3>
+                    <p class="text-xs text-emerald-600 mt-0.5" id="pctManoObra">0% del costo</p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                    <i class="fa-solid fa-users-gear text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-slate-900 text-white p-5 rounded-xl shadow-md flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gran Total c/IVA</p>
+                    <h3 id="lblGranTotal" class="text-2xl font-bold text-brand-500 mt-1">$0.00</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Indirectos y Utilidad incluidos</p>
+                </div>
+                <div class="w-12 h-12 bg-brand-500 text-white rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-file-invoice-dollar text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contenedor Principal con Pestañas -->
+    <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-grow">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Barra de Pestañas -->
+            <div class="flex overflow-x-auto bg-slate-50 border-b border-slate-200 scrollbar-none">
+                <button onclick="switchTab('parametros')" id="btn-parametros" class="tab-btn px-5 py-3.5 text-sm font-semibold text-brand-600 border-b-2 border-brand-500 bg-white flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-sliders"></i> 0. Parámetros de Obra
+                </button>
+                <button onclick="switchTab('cimentacion')" id="btn-cimentacion" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-layer-group"></i> 1. Cimentación
+                </button>
+                <button onclick="switchTab('estructura')" id="btn-estructura" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-building"></i> 2. Estructura y Muros
+                </button>
+                <button onclick="switchTab('techado')" id="btn-techado" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-house-chimney"></i> 3. Techado / Azotea
+                </button>
+                <button onclick="switchTab('manoobra')" id="btn-manoobra" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-helmet-safety"></i> 4. Mano de Obra
+                </button>
+                <button onclick="switchTab('materiales')" id="btn-materiales" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-boxes-stacked text-brand-500"></i> 5. Estimación Materiales
+                </button>
+                <button onclick="switchTab('resumen')" id="btn-resumen" class="tab-btn px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap transition">
+                    <i class="fa-solid fa-chart-pie"></i> 6. Resumen Financiero
+                </button>
+            </div>
+
+            <!-- CONTENIDO DE PESTAÑAS -->
+            <div class="p-6">
+
+                <!-- TAB 0: PARÁMETROS DE OBRA -->
+                <div id="tab-parametros" class="tab-content active">
+                    <div class="mb-6">
+                        <h2 class="text-lg font-bold text-slate-900">Configuración de Dimensiones y Precios Base</h2>
+                        <p class="text-sm text-slate-500">Ingresa los parámetros generales de tu proyecto. El sistema recalculará automáticamente las cantidades volumétricas y costos de todas las partidas.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Dimensiones Geométricas -->
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-ruler-combined text-brand-500"></i> Dimensiones Generales
+                            </h3>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Área de Construcción Planta (m²)</label>
+                                <input type="number" id="p_area" value="120" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Perímetro de Muros (ml)</label>
+                                <input type="number" id="p_perimetro" value="45" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Altura Libre de Muros (m)</label>
+                                <input type="number" step="0.1" id="p_altura" value="2.8" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Número de Niveles</label>
+                                <input type="number" id="p_niveles" value="1" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Costos Unitarios de Insumos Principales -->
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-tag text-brand-500"></i> Precios Base de Insumos ($)
+                            </h3>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Saco Cemento (50kg)</label>
+                                <input type="number" id="p_precio_cemento" value="215" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio m³ Arena</label>
+                                <input type="number" id="p_precio_arena" value="480" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio m³ Grava</label>
+                                <input type="number" id="p_precio_grava" value="520" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio por Pieza de Tabique/Block</label>
+                                <input type="number" step="0.1" id="p_precio_tabique" value="4.80" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Factores y Acero -->
+                        <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-gears text-brand-500"></i> Factores y Refuerzo
+                            </h3>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Precio Acero por kg ($)</label>
+                                <input type="number" step="0.5" id="p_precio_acero" value="38.50" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Factor Prestaciones Mano Obra (IMSS/ISN)</label>
+                                <input type="number" step="0.01" id="p_factor_mo" value="1.35" oninput="sincronizarParametros()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            </div>
+                            <div class="pt-4">
+                                <button onclick="aplicarParametrosAutomaticos()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-lg text-sm shadow-sm transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Sincronizar con Partidas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 1: CIMENTACIÓN -->
+                <div id="tab-cimentacion" class="tab-content">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Levantamiento, Excavación y Cimentación</h2>
+                            <p class="text-sm text-slate-500">Personaliza los conceptos, unidades, cantidades y costos unitarios de cimentación.</p>
+                        </div>
+                        <button onclick="agregarFila('cimentacion')" class="bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Agregar Concepto
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="w-full text-left border-collapse text-sm" id="tabla-cimentacion">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3 font-semibold w-2/5">Concepto / Descripción</th>
+                                    <th class="p-3 font-semibold">Unidad</th>
+                                    <th class="p-3 font-semibold">Cantidad</th>
+                                    <th class="p-3 font-semibold">Costo Unitario ($)</th>
+                                    <th class="p-3 font-semibold">Subtotal ($)</th>
+                                    <th class="p-3 font-semibold text-center w-16">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: ESTRUCTURA Y MUROS -->
+                <div id="tab-estructura" class="tab-content">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Estructura, Columnas, Trabes y Muros</h2>
+                            <p class="text-sm text-slate-500">Edita los conceptos de muros, castillos y columnas de concreto armado.</p>
+                        </div>
+                        <button onclick="agregarFila('estructura')" class="bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Agregar Concepto
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="w-full text-left border-collapse text-sm" id="tabla-estructura">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3 font-semibold w-2/5">Concepto / Descripción</th>
+                                    <th class="p-3 font-semibold">Unidad</th>
+                                    <th class="p-3 font-semibold">Cantidad</th>
+                                    <th class="p-3 font-semibold">Costo Unitario ($)</th>
+                                    <th class="p-3 font-semibold">Subtotal ($)</th>
+                                    <th class="p-3 font-semibold text-center w-16">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: TECHADO Y AZOTEA -->
+                <div id="tab-techado" class="tab-content">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Techado, Losa de Azotea e Impermeabilización</h2>
+                            <p class="text-sm text-slate-500">Configura cimbra, acero, concreto de losa y acabados de azotea.</p>
+                        </div>
+                        <button onclick="agregarFila('techado')" class="bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Agregar Concepto
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="w-full text-left border-collapse text-sm" id="tabla-techado">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3 font-semibold w-2/5">Concepto / Descripción</th>
+                                    <th class="p-3 font-semibold">Unidad</th>
+                                    <th class="p-3 font-semibold">Cantidad</th>
+                                    <th class="p-3 font-semibold">Costo Unitario ($)</th>
+                                    <th class="p-3 font-semibold">Subtotal ($)</th>
+                                    <th class="p-3 font-semibold text-center w-16">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 4: MANO DE OBRA Y CUADRILLAS -->
+                <div id="tab-manoobra" class="tab-content">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Mano de Obra, Salarios y Cargas Sociales</h2>
+                            <p class="text-sm text-slate-500">Modifica salarios diarios por puesto y días estimados de obra con factor prestacional incluido.</p>
+                        </div>
+                        <button onclick="agregarFila('manoobra')" class="bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Agregar Categoría
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="w-full text-left border-collapse text-sm" id="tabla-manoobra">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-700 border-b border-slate-200">
+                                    <th class="p-3 font-semibold w-2/5">Categoría / Puesto</th>
+                                    <th class="p-3 font-semibold">Salario Diario ($)</th>
+                                    <th class="p-3 font-semibold">Factor Prestaciones</th>
+                                    <th class="p-3 font-semibold">Días / Cantidad</th>
+                                    <th class="p-3 font-semibold">Subtotal ($)</th>
+                                    <th class="p-3 font-semibold text-center w-16">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 5: ESTIMACIÓN AUTOMÁTICA DE MATERIALES -->
+                <div id="tab-materiales" class="tab-content">
+                    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-calculator text-brand-500 mr-2"></i>Cómputo Automático de Insumos</h2>
+                            <p class="text-sm text-slate-500">Cálculo volumétrico paramétrico en base a las dimensiones y precios unitarios definidos en la pestaña 0.</p>
+                        </div>
+                        <button onclick="calcularMateriales()" class="bg-slate-900 hover:bg-slate-800 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-rotate"></i> Recalcular Materiales
+                        </button>
+                    </div>
+
+                    <!-- Métricas Base -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Volumen de Concreto Estimado</p>
+                            <h4 id="volConcretoTotal" class="text-xl font-bold text-slate-900 mt-1">0.00 m³</h4>
+                            <p class="text-xs text-slate-400">Cimentación, columnas y losas</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Área de Muros Estimada</p>
+                            <h4 id="areaMurosTotal" class="text-xl font-bold text-slate-900 mt-1">0.00 m²</h4>
+                            <p class="text-xs text-slate-400">Perímetro × Altura de muros</p>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Área de Techado / Losa</p>
+                            <h4 id="areaTechadoTotal" class="text-xl font-bold text-slate-900 mt-1">0.00 m²</h4>
+                            <p class="text-xs text-slate-400">Planta de construcción</p>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Materiales -->
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="w-full text-left border-collapse text-sm" id="tabla-materiales-estimados">
+                            <thead>
+                                <tr class="bg-slate-900 text-white">
+                                    <th class="p-3.5 font-semibold">Material / Insumo</th>
+                                    <th class="p-3.5 font-semibold">Categoría</th>
+                                    <th class="p-3.5 font-semibold text-center">Cantidad Estimada</th>
+                                    <th class="p-3.5 font-semibold text-right">Costo Unitario ($)</th>
+                                    <th class="p-3.5 font-semibold text-right">Costo Estimado ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 6: RESUMEN Y PRESUPUESTO GENERAL -->
+                <div id="tab-resumen" class="tab-content">
+                    <div class="mb-6">
+                        <h2 class="text-lg font-bold text-slate-900">Resumen Financiero y Presupuesto General</h2>
+                        <p class="text-sm text-slate-500">Desglose definitivo de partidas, costos indirectos, utilidad esperada e impuestos correspondientes.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Tabla Resumen Partidas -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                <table class="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr class="bg-slate-900 text-white">
+                                            <th class="p-3.5 font-semibold">Partida Presupuestal</th>
+                                            <th class="p-3.5 font-semibold text-right">Monto Total ($)</th>
+                                            <th class="p-3.5 font-semibold text-right">% Incidencia</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-resumen-partidas" class="divide-y divide-slate-200 bg-white"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Parámetros Financieros -->
+                            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Indirectos y Operación (%)</label>
+                                    <input type="number" id="inputIndirectos" value="15" onchange="calcularTodo()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Margen de Utilidad (%)</label>
+                                    <input type="number" id="inputUtilidad" value="12" onchange="calcularTodo()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tasa de IVA (%)</label>
+                                    <input type="number" id="inputIva" value="16" onchange="calcularTodo()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Moneda del Presupuesto</label>
+                                    <select id="selectMoneda" onchange="calcularTodo()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                                        <option value="$">MXN ($)</option>
+                                        <option value="USD $">USD ($)</option>
+                                        <option value="€">EUR (€)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfica y Totales -->
+                        <div class="bg-slate-900 text-white p-6 rounded-2xl flex flex-col justify-between shadow-lg">
+                            <div>
+                                <h3 class="text-base font-bold mb-1">Distribución del Presupuesto</h3>
+                                <p class="text-xs text-slate-400 mb-4">Proporción de costos directos e indirectos</p>
+                                <div class="relative w-full h-48 flex items-center justify-center">
+                                    <canvas id="chartPresupuesto"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-6 border-t border-slate-800 space-y-3 text-sm">
+                                <div class="flex justify-between text-slate-300">
+                                    <span>Costo Directo:</span>
+                                    <span id="resCostoDirecto" class="font-semibold">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-300">
+                                    <span>Indirectos:</span>
+                                    <span id="resIndirectos" class="font-semibold">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-300">
+                                    <span>Utilidad:</span>
+                                    <span id="resUtilidad" class="font-semibold">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-300">
+                                    <span>IVA:</span>
+                                    <span id="resIva" class="font-semibold">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-lg font-bold text-brand-500 pt-3 border-t border-slate-800">
+                                    <span>Presupuesto Final:</span>
+                                    <span id="resGranTotal">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Notificación Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message" class="text-sm font-medium">Acción completada con éxito.</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            &copy; 2026 ConstructoPro - Plataforma Interactiva de Costos de Obra Civil y Estimación Paramétrica.
+        </div>
+    </footer>
+
+    <!-- Script de cálculo y parámetros -->
+    <script>
+        let parametros = {
+            area: 120,
+            perimetro: 45,
+            altura: 2.8,
+            niveles: 1,
+            precio_cemento: 215,
+            precio_arena: 480,
+            precio_grava: 520,
+            precio_tabique: 4.80,
+            precio_acero: 38.50,
+            factor_mo: 1.35
+        };
+
+        let presupuesto = {
+            cimentacion: [{
+                desc: "Trazo y nivelación con equipo topográfico",
+                unidad: "m2",
+                cant: 120,
+                precio: 35.00
+            }, {
+                desc: "Excavación manual en zanja material tipo II",
+                unidad: "m3",
+                cant: 45,
+                precio: 220.00
+            }, {
+                desc: "Plantilla de concreto pobre f'c=100 kg/cm2",
+                unidad: "m2",
+                cant: 30,
+                precio: 180.00
+            }, {
+                desc: "Zapatas aisladas de concreto armado",
+                unidad: "m3",
+                cant: 12,
+                precio: 3400.00
+            }, {
+                desc: "Cimientos de mampostería de piedra brasa",
+                unidad: "m3",
+                cant: 24,
+                precio: 1450.00
+            }],
+            estructura: [{
+                desc: "Muro de tabique rojo recocido 14x7x28 cm",
+                unidad: "m2",
+                cant: 126,
+                precio: 380.00
+            }, {
+                desc: "Castillos ahogados de 15x15 cm 4 varillas #3",
+                unidad: "ml",
+                cant: 95,
+                precio: 210.00
+            }, {
+                desc: "Dalas de cerramiento y desplome",
+                unidad: "ml",
+                cant: 60,
+                precio: 240.00
+            }, {
+                desc: "Columnas de concreto reforzado f'c=250 kg/cm2",
+                unidad: "m3",
+                cant: 6.5,
+                precio: 4200.00
+            }],
+            techado: [{
+                desc: "Cimbra en losa de azotea (madera / triplay)",
+                unidad: "m2",
+                cant: 120,
+                precio: 290.00
+            }, {
+                desc: "Acero de refuerzo en losa fy=4200 kg/cm2",
+                unidad: "kg",
+                cant: 850,
+                precio: 38.50
+            }, {
+                desc: "Concreto premezclado f'c=250 kg/cm2 en losa",
+                unidad: "m3",
+                cant: 12,
+                precio: 2850.00
+            }, {
+                desc: "Impermeabilizante acrílico prefabricado 4mm",
+                unidad: "m2",
+                cant: 120,
+                precio: 220.00
+            }, {
+                desc: "Pretiles perimetrales de tabique",
+                unidad: "ml",
+                cant: 42,
+                precio: 195.00
+            }],
+            manoobra: [{
+                desc: "Cuadrilla 1: Cabo de Oficios + Ayudante",
+                unidad: "días",
+                cant: 35,
+                precio: 1450.00
+            }, {
+                desc: "Albañil Oficial (Especialista en Muros/Zapatas)",
+                unidad: "días",
+                cant: 60,
+                precio: 680.00
+            }, {
+                desc: "Fierrero / Armador de Acero",
+                unidad: "días",
+                cant: 20,
+                precio: 720.00
+            }, {
+                desc: "Carpintero de Cimbra",
+                unidad: "días",
+                cant: 25,
+                precio: 720.00
+            }, {
+                desc: "Ayudante General de Obra",
+                unidad: "días",
+                cant: 120,
+                precio: 450.00
+            }]
+        };
+
+        let chartInstance = null;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-brand-500', 'text-brand-600', 'bg-white');
+                btn.classList.add('border-transparent', 'text-slate-600');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('border-brand-500', 'text-brand-600', 'bg-white');
+            activeBtn.classList.remove('border-transparent', 'text-slate-600');
+
+            if (tabId === 'materiales') {
+                calcularMateriales();
+            }
+            if (tabId === 'resumen') {
+                actualizarGrafica();
+            }
+        }
+
+        function mostrarToast(mensaje, tipo = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+            msgEl.textContent = mensaje;
+            if (tipo === 'success') {
+                iconEl.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
+            } else {
+                iconEl.className = 'fa-solid fa-triangle-exclamation text-amber-400 text-lg';
+            }
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function sincronizarParametros() {
+            parametros.area = parseFloat(document.getElementById('p_area').value) || 0;
+            parametros.perimetro = parseFloat(document.getElementById('p_perimetro').value) || 0;
+            parametros.altura = parseFloat(document.getElementById('p_altura').value) || 0;
+            parametros.niveles = parseFloat(document.getElementById('p_niveles').value) || 1;
+            parametros.precio_cemento = parseFloat(document.getElementById('p_precio_cemento').value) || 0;
+            parametros.precio_arena = parseFloat(document.getElementById('p_precio_arena').value) || 0;
+            parametros.precio_grava = parseFloat(document.getElementById('p_precio_grava').value) || 0;
+            parametros.precio_tabique = parseFloat(document.getElementById('p_precio_tabique').value) || 0;
+            parametros.precio_acero = parseFloat(document.getElementById('p_precio_acero').value) || 0;
+            parametros.factor_mo = parseFloat(document.getElementById('p_factor_mo').value) || 1.35;
+        }
+
+        function aplicarParametrosAutomaticos() {
+            sincronizarParametros();
+            // Actualizar automáticamente algunas cantidades clave en las tablas basándose en las dimensiones
+            let areaMurosCalc = parametros.perimetro * parametros.altura * parametros.niveles;
+
+            // Buscar y actualizar en cimentación (trazo y áreas base)
+            if (presupuesto.cimentacion[0]) presupuesto.cimentacion[0].cant = parametros.area;
+            if (presupuesto.cimentacion[2]) presupuesto.cimentacion[2].cant = Math.round(parametros.area * 0.25);
+
+            // Estructura (muros)
+            if (presupuesto.estructura[0]) {
+                presupuesto.estructura[0].cant = areaMurosCalc;
+            }
+
+            // Techado (losa y cimbra)
+            if (presupuesto.techado[0]) presupuesto.techado[0].cant = parametros.area * parametros.niveles;
+            if (presupuesto.techado[3]) presupuesto.techado[3].cant = parametros.area * parametros.niveles;
+
+            renderTablas();
+            mostrarToast("¡Parámetros y cantidades sincronizadas con éxito!");
+        }
+
+        function renderTablas() {
+            ['cimentacion', 'estructura', 'techado', 'manoobra'].forEach(seccion => {
+                const tbody = document.querySelector(`#tabla-${seccion} tbody`);
+                tbody.innerHTML = '';
+
+                presupuesto[seccion].forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50/80 transition';
+
+                    if (seccion === 'manoobra') {
+                        let factorActual = parametros.factor_mo || 1.35;
+                        tr.innerHTML = `
+                            <td class="p-3"><input type="text" value="${item.desc}" oninput="actualizarDato('${seccion}', ${index}, 'desc', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none font-medium"></td>
+                            <td class="p-3"><input type="number" step="0.01" value="${item.precio}" oninput="actualizarDato('${seccion}', ${index}, 'precio', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none"></td>
+                            <td class="p-3"><span class="text-xs px-2 py-1 bg-slate-100 rounded text-slate-600 font-medium">${factorActual} (IMSS)</span></td>
+                            <td class="p-3"><input type="number" step="0.5" value="${item.cant}" oninput="actualizarDato('${seccion}', ${index}, 'cant', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none"></td>
+                            <td class="p-3 font-semibold text-slate-900 subtotal-col">$${(item.cant * item.precio * factorActual).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="eliminarFila('${seccion}', ${index})" class="text-slate-400 hover:text-red-600 p-1.5 transition"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        `;
+                    } else {
+                        tr.innerHTML = `
+                            <td class="p-3"><input type="text" value="${item.desc}" oninput="actualizarDato('${seccion}', ${index}, 'desc', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none font-medium"></td>
+                            <td class="p-3"><input type="text" value="${item.unidad}" oninput="actualizarDato('${seccion}', ${index}, 'unidad', this.value)" class="w-20 bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none text-center"></td>
+                            <td class="p-3"><input type="number" step="0.01" value="${item.cant}" oninput="actualizarDato('${seccion}', ${index}, 'cant', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none"></td>
+                            <td class="p-3"><input type="number" step="0.01" value="${item.precio}" oninput="actualizarDato('${seccion}', ${index}, 'precio', this.value)" class="w-full bg-transparent border border-transparent hover:border-slate-300 focus:border-brand-500 rounded px-2 py-1 outline-none"></td>
+                            <td class="p-3 font-semibold text-slate-900 subtotal-col">$${(item.cant * item.precio).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="p-3 text-center">
+                                <button onclick="eliminarFila('${seccion}', ${index})" class="text-slate-400 hover:text-red-600 p-1.5 transition"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        `;
+                    }
+                    tbody.appendChild(tr);
+                });
+            });
+            calcularTotalesGenerales();
+        }
+
+        function actualizarDato(seccion, index, campo, valor) {
+            if (campo === 'cant' || campo === 'precio') {
+                presupuesto[seccion][index][campo] = parseFloat(valor) || 0;
+            } else {
+                presupuesto[seccion][index][campo] = valor;
+            }
+            const tbody = document.querySelector(`#tabla-${seccion} tbody`);
+            const fila = tbody.children[index];
+            const item = presupuesto[seccion][index];
+            let factorActual = parametros.factor_mo || 1.35;
+            const subtotal = seccion === 'manoobra' ? (item.cant * item.precio * factorActual) : (item.cant * item.precio);
+            fila.querySelector('.subtotal-col').textContent = '$' + subtotal.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            calcularTotalesGenerales();
+        }
+
+        function agregarFila(seccion) {
+            if (seccion === 'manoobra') {
+                presupuesto[seccion].push({
+                    desc: "Nueva Categoría",
+                    cant: 10,
+                    precio: 500.00
+                });
+            } else {
+                presupuesto[seccion].push({
+                    desc: "Nuevo Concepto de Obra",
+                    unidad: "pza",
+                    cant: 1,
+                    precio: 100.00
+                });
+            }
+            renderTablas();
+            mostrarToast("Concepto agregado correctamente.");
+        }
+
+        function eliminarFila(seccion, index) {
+            presupuesto[seccion].splice(index, 1);
+            renderTablas();
+            mostrarToast("Concepto eliminado.", "warning");
+        }
+
+        // MOTOR DE ESTIMACIÓN AUTOMÁTICA DE MATERIALES
+        function calcularMateriales() {
+            sincronizarParametros();
+
+            let m3Concreto = 0;
+            let m2Muros = 0;
+            let m2Techado = 0;
+            let kgAcero = 0;
+
+            presupuesto.cimentacion.forEach(item => {
+                let texto = item.desc.toLowerCase();
+                if (item.unidad === 'm3') m3Concreto += item.cant;
+                if (item.unidad === 'm2' && !texto.includes('trazo')) m2Techado += item.cant;
+            });
+
+            presupuesto.estructura.forEach(item => {
+                let texto = item.desc.toLowerCase();
+                if (item.unidad === 'm2') m2Muros += item.cant;
+                if (item.unidad === 'm3') m3Concreto += item.cant;
+            });
+
+            presupuesto.techado.forEach(item => {
+                let texto = item.desc.toLowerCase();
+                if (item.unidad === 'm3') m3Concreto += item.cant;
+                if (item.unidad === 'm2' && !texto.includes('impermeabilizante')) m2Techado += item.cant;
+                if (item.unidad === 'kg') kgAcero += item.cant;
+            });
+
+            document.getElementById('volConcretoTotal').textContent = m3Concreto.toFixed(2) + ' m³';
+            document.getElementById('areaMurosTotal').textContent = m2Muros.toFixed(2) + ' m²';
+            document.getElementById('areaTechadoTotal').textContent = m2Techado.toFixed(2) + ' m²';
+
+            let sacosCemento = Math.ceil((m3Concreto * 7.5) + (m2Muros * 0.35));
+            let m3Arena = (m3Concreto * 0.65) + (m2Muros * 0.02);
+            let m3Grava = m3Concreto * 0.78;
+            let pzasTabique = Math.ceil(m2Muros * 57);
+            let totalAceroKg = kgAcero * 1.10;
+            let m2Cimbra = m2Techado * 1.1;
+
+            const listadoInsumos = [{
+                nombre: "Cemento Gris Portland (saco 50 kg)",
+                cat: "Aglutinantes",
+                cant: sacosCemento,
+                unidad: "sacos",
+                precioRef: parametros.precio_cemento
+            }, {
+                nombre: "Arena de río limpia (banco)",
+                cat: "Áridos",
+                cant: Math.ceil(m3Arena * 10) / 10,
+                unidad: "m³",
+                precioRef: parametros.precio_arena
+            }, {
+                nombre: "Grava triturada 3/4\"",
+                cat: "Áridos",
+                cant: Math.ceil(m3Grava * 10) / 10,
+                unidad: "m³",
+                precioRef: parametros.precio_grava
+            }, {
+                nombre: "Tabique rojo recocido / Block aligerado",
+                cat: "Mampostería",
+                cant: pzasTabique,
+                unidad: "pzas",
+                precioRef: parametros.precio_tabique
+            }, {
+                nombre: "Varilla corrugada de acero (3/8\" y 1/2\")",
+                cat: "Acero de Refuerzo",
+                cant: Math.ceil(totalAceroKg),
+                unidad: "kg",
+                precioRef: parametros.precio_acero
+            }, {
+                nombre: "Madera de pino / Cimbraplay para moldes",
+                cat: "Cimbra",
+                cant: Math.ceil(m2Cimbra),
+                unidad: "m²",
+                precioRef: 120.00
+            }, ];
+
+            const tbodyMat = document.querySelector('#tabla-materiales-estimados tbody');
+            tbodyMat.innerHTML = '';
+
+            listadoInsumos.forEach(ins => {
+                let costoTotalIns = ins.cant * ins.precioRef;
+                let tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="p-3.5 font-medium text-slate-900">${ins.nombre}</td>
+                    <td class="p-3.5"><span class="text-xs px-2.5 py-1 bg-slate-100 rounded-full font-medium text-slate-600">${ins.cat}</span></td>
+                    <td class="p-3.5 text-center font-bold text-brand-600">${ins.cant.toLocaleString('es-MX')} ${ins.unidad}</td>
+                    <td class="p-3.5 text-right text-slate-600">$${ins.precioRef.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3.5 text-right font-semibold text-slate-900">$${costoTotalIns.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                `;
+                tbodyMat.appendChild(tr);
+            });
+        }
+
+        function calcularTotalesGenerales() {
+            sincronizarParametros();
+            const moneda = document.getElementById('selectMoneda').value;
+            let factorMO = parametros.factor_mo || 1.35;
+
+            let totalCimentacion = presupuesto.cimentacion.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalEstructura = presupuesto.estructura.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalTechado = presupuesto.techado.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalManoObra = presupuesto.manoobra.reduce((acc, item) => acc + (item.cant * item.precio * factorMO), 0);
+
+            let totalMateriales = totalCimentacion + totalEstructura + totalTechado;
+            let costoDirecto = totalMateriales + totalManoObra;
+
+            let pctMat = costoDirecto > 0 ? ((totalMateriales / costoDirecto) * 100).toFixed(1) : 0;
+            let pctMO = costoDirecto > 0 ? ((totalManoObra / costoDirecto) * 100).toFixed(1) : 0;
+
+            let pIndirectos = parseFloat(document.getElementById('inputIndirectos').value) || 0;
+            let pUtilidad = parseFloat(document.getElementById('inputUtilidad').value) || 0;
+            let pIva = parseFloat(document.getElementById('inputIva').value) || 0;
+
+            let montoIndirectos = costoDirecto * (pIndirectos / 100);
+            let subtotalConIndirectos = costoDirecto + montoIndirectos;
+            let montoUtilidad = subtotalConIndirectos * (pUtilidad / 100);
+            let subtotalAntesIva = subtotalConIndirectos + montoUtilidad;
+            let montoIva = subtotalAntesIva * (pIva / 100);
+            let granTotal = subtotalAntesIva + montoIva;
+
+            document.getElementById('lblCostoDirecto').textContent = moneda + ' ' + costoDirecto.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('lblTotalMateriales').textContent = moneda + ' ' + totalMateriales.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('pctMateriales').textContent = pctMat + '% del costo directo';
+            document.getElementById('lblTotalManoObra').textContent = moneda + ' ' + totalManoObra.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('pctManoObra').textContent = pctMO + '% del costo directo';
+            document.getElementById('lblGranTotal').textContent = moneda + ' ' + granTotal.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            document.getElementById('resCostoDirecto').textContent = moneda + ' ' + costoDirecto.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('resIndirectos').textContent = moneda + ' ' + montoIndirectos.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('resUtilidad').textContent = moneda + ' ' + montoUtilidad.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('resIva').textContent = moneda + ' ' + montoIva.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('resGranTotal').textContent = moneda + ' ' + granTotal.toLocaleString('es-MX', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            const tbodyResumen = document.getElementById('tabla-resumen-partidas');
+            tbodyResumen.innerHTML = `
+                <tr>
+                    <td class="p-3 font-medium text-slate-800">1. Cimentación y Excavación</td>
+                    <td class="p-3 text-right font-semibold">$${totalCimentacion.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right text-slate-500">${granTotal > 0 ? ((totalCimentacion/granTotal)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td class="p-3 font-medium text-slate-800">2. Estructura y Muros</td>
+                    <td class="p-3 text-right font-semibold">$${totalEstructura.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right text-slate-500">${granTotal > 0 ? ((totalEstructura/granTotal)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td class="p-3 font-medium text-slate-800">3. Techado y Losa de Azotea</td>
+                    <td class="p-3 text-right font-semibold">$${totalTechado.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right text-slate-500">${granTotal > 0 ? ((totalTechado/granTotal)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr>
+                    <td class="p-3 font-medium text-slate-800">4. Mano de Obra y Cargas Sociales (IMSS)</td>
+                    <td class="p-3 text-right font-semibold">$${totalManoObra.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right text-slate-500">${granTotal > 0 ? ((totalManoObra/granTotal)*100).toFixed(1) : 0}%</td>
+                </tr>
+                <tr class="bg-slate-50 font-bold border-t border-slate-200">
+                    <td class="p-3 text-slate-900">COSTO DIRECTO TOTAL</td>
+                    <td class="p-3 text-right text-slate-900">$${costoDirecto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right text-slate-700">${granTotal > 0 ? ((costoDirecto/granTotal)*100).toFixed(1) : 0}%</td>
+                </tr>
+            `;
+
+            if (chartInstance) {
+                actualizarGrafica();
+            }
+        }
+
+        function calcularTodo() {
+            calcularTotalesGenerales();
+        }
+
+        function inicializarGrafica() {
+            const ctx = document.getElementById('chartPresupuesto').getContext('2d');
+
+            let totalCimentacion = presupuesto.cimentacion.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalEstructura = presupuesto.estructura.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalTechado = presupuesto.techado.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalManoObra = presupuesto.manoobra.reduce((acc, item) => acc + (item.cant * item.precio * parametros.factor_mo), 0);
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cimentación', 'Estructura', 'Techado', 'Mano de Obra'],
+                    datasets: [{
+                        data: [totalCimentacion, totalEstructura, totalTechado, totalManoObra],
+                        backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#cbd5e1',
+                                boxWidth: 12,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function actualizarGrafica() {
+            if (!chartInstance) return;
+            let totalCimentacion = presupuesto.cimentacion.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalEstructura = presupuesto.estructura.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalTechado = presupuesto.techado.reduce((acc, item) => acc + (item.cant * item.precio), 0);
+            let totalManoObra = presupuesto.manoobra.reduce((acc, item) => acc + (item.cant * item.precio * parametros.factor_mo), 0);
+
+            chartInstance.data.datasets[0].data = [totalCimentacion, totalEstructura, totalTechado, totalManoObra];
+            chartInstance.update();
+        }
+
+        function guardarDatos() {
+            const estadoGlobal = {
+                parametros,
+                presupuesto
+            };
+            localStorage.setItem('constructoPro_v4', JSON.stringify(estadoGlobal));
+            mostrarToast("Proyecto guardado en el navegador.");
+        }
+
+        function cargarDatos() {
+            const guardado = localStorage.getItem('constructoPro_v4');
+            if (guardado) {
+                const estadoGlobal = JSON.parse(guardado);
+                parametros = estadoGlobal.parametros;
+                presupuesto = estadoGlobal.presupuesto;
+
+                // Rellenar inputs de parámetros
+                document.getElementById('p_area').value = parametros.area;
+                document.getElementById('p_perimetro').value = parametros.perimetro;
+                document.getElementById('p_altura').value = parametros.altura;
+                document.getElementById('p_niveles').value = parametros.niveles;
+                document.getElementById('p_precio_cemento').value = parametros.precio_cemento;
+                document.getElementById('p_precio_arena').value = parametros.precio_arena;
+                document.getElementById('p_precio_grava').value = parametros.precio_grava;
+                document.getElementById('p_precio_tabique').value = parametros.precio_tabique;
+                document.getElementById('p_precio_acero').value = parametros.precio_acero;
+                document.getElementById('p_factor_mo').value = parametros.factor_mo;
+
+                renderTablas();
+                mostrarToast("Proyecto cargado con éxito.");
+            } else {
+                mostrarToast("No hay datos guardados previamente.", "warning");
+            }
+        }
+
+        function resetearPresupuesto() {
+            renderTablas();
+            mostrarToast("Se han actualizado los cálculos.", "warning");
+        }
+
+        window.onload = function() {
+            renderTablas();
+            inicializarGrafica();
+            calcularMateriales();
+        }
+    </script>
+</body>
+
+</html>
